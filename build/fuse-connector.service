@@ -1,0 +1,15 @@
+[Unit]
+Description=open-object plugin connector
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+EnvironmentFile=/etc/open-object/fuse-connector.conf
+ExecStart=/etc/open-object/open-object $ARG
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s QUIT $MAINPID
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
