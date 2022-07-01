@@ -1,0 +1,4 @@
+apiVersion: v1
+description: open-object plugin
+name: open-object
+version: v0.1.0

@@ -1,0 +1,144 @@
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: {{ .Values.driver }}
+spec:
+  attachRequired: false
+  podInfoOnMount: true
+  volumeLifecycleModes:
+  - Persistent
+---
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      tolerations:
+      - operator: Exists
+      serviceAccount: {{ .Values.name }}
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      initContainers:
+      - name: run-connector
+        image: {{ .Values.images.object.image }}:{{ .Values.images.object.tag }}
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_ADMIN"]
+          allowPrivilegeEscalation: true
+        command:
+        - /run-connector.sh
+        volumeMounts:
+        - name: host-systemd-config
+          mountPath: /host/usr/lib/systemd/system
+        - name: host-etc
+          mountPath: /host/etc/{{ .Values.name }}
+      containers:
+      - name: driver-registrar
+        image: {{ .Values.images.registrar.image }}:{{ .Values.images.registrar.tag }}
+        args:
+        - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+        - "--v=4"
+        - "--csi-address=$(ADDRESS)"
+        env:
+        - name: ADDRESS
+          value: /csi/csi.sock
+        - name: DRIVER_REG_SOCK_PATH
+          value: {{ .Values.global.kubelet_dir }}/plugins/{{ .Values.driver }}/csi.sock
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: TZ
+          value: Asia/Shanghai
+        resources:
+          limits:
+            cpu: 50m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 100Mi
+        volumeMounts:
+        - name: plugin-dir
+          mountPath: /csi
+        - name: registration-dir
+          mountPath: /registration/
+      - name: csi-plugin
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_ADMIN"]
+          allowPrivilegeEscalation: true
+        image: {{ .Values.images.object.image }}:{{ .Values.images.object.tag }}
+        args:
+        - "csi"
+        - "--endpoint=$(CSI_ENDPOINT)"
+        - "--nodeID=$(NODE_ID)"
+        - "--driver={{ .Values.driver }}"
+        env:
+        - name: CSI_ENDPOINT
+          value: unix:///csi/csi.sock
+        - name: NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: TZ
+          value: Asia/Shanghai
+        resources:
+          limits:
+            cpu: 200m
+            memory: 400Mi
+          requests:
+            cpu: 200m
+            memory: 400Mi
+        imagePullPolicy: "IfNotPresent"
+        volumeMounts:
+        - name: plugin-dir
+          mountPath: /csi
+        - name: pods-mount-dir
+          mountPath: {{ .Values.global.kubelet_dir }}/pods
+          mountPropagation: "Bidirectional"
+        - name: fuse-device
+          mountPath: /dev/fuse
+        - name: host-etc
+          mountPath: /host/etc/{{ .Values.name }}
+        - name: host-etc-os
+          mountPath: /host/etc/os-release
+      volumes:
+      - name: registration-dir
+        hostPath:
+          path: {{ .Values.global.kubelet_dir }}/plugins_registry/
+          type: DirectoryOrCreate
+      - name: plugin-dir
+        hostPath:
+          path: {{ .Values.global.kubelet_dir }}/plugins/{{ .Values.driver }}
+          type: DirectoryOrCreate
+      - name: pods-mount-dir
+        hostPath:
+          path: {{ .Values.global.kubelet_dir }}/pods
+          type: Directory
+      - name: fuse-device
+        hostPath:
+          path: /dev/fuse
+      - name: host-etc
+        hostPath:
+          path: /etc/{{ .Values.name }}
+          type: DirectoryOrCreate
+      - name: host-etc-os
+        hostPath:
+          path: /etc/os-release
+          type: File
+      - name: host-systemd-config
+        hostPath:
+          path: /usr/lib/systemd/system
+          type: DirectoryOrCreate

@@ -1,0 +1,27 @@
+name: open-object
+namespace: kube-system
+driver: object.csi.aliyun.com
+
+images:
+  object:
+    image: thebeatles1994/open-object
+    tag: v0.1.0-dev
+  provisioner:
+    image: ack-agility-registry.cn-shanghai.cr.aliyuncs.com/ecp_builder/csi-provisioner
+    tag: v2.2.2
+  registrar:
+    image: ack-agility-registry.cn-shanghai.cr.aliyuncs.com/ecp_builder/csi-node-driver-registrar
+    tag: v2.3.0
+  resizer:
+    image: ack-agility-registry.cn-shanghai.cr.aliyuncs.com/ecp_builder/csi-resizer
+    tag: v1.3.0
+
+global:
+  kubelet_dir: "/var/lib/kubelet"
+
+minio:
+  host: "http://10.96.2.217:9000"
+  accesskey: "minio"
+  secretkey: "miniostorage"
+  region: "china"
+  
