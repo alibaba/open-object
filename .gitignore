@@ -1,4 +1,5 @@
 .idea/
+.vscode/
 
 # This is where the result of the go build goes
 /output*/
