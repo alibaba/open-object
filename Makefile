@@ -14,7 +14,8 @@ MAIN_FILE=./cmd/main.go
 
 IMAGE_NAME=thebeatles1994/${NAME}
 VERSION=v0.1.0-dev
-IMAGE_TAG=${IMAGE_NAME}:${VERSION}
+# IMAGE_TAG=${IMAGE_NAME}:${VERSION}
+IMAGE_TAG=ack-agility-registry.cn-shanghai.cr.aliyuncs.com/ecp_builder/open-object:v0.1.0-dev
 GIT_COMMIT=$(shell git rev-parse HEAD)
 LD_FLAGS=-ldflags "-X '${GO_PACKAGE}/pkg/version.GitCommit=$(GIT_COMMIT)' -X '${GO_PACKAGE}/pkg/version.Version=$(VERSION)' -X 'main.VERSION=$(VERSION)' -X 'main.COMMITID=$(GIT_COMMIT)'"
 

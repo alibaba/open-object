@@ -43,7 +43,7 @@ func (driver *MinIODriver) CreateVolume(ctx context.Context, req *csi.CreateVolu
 	bucketName := req.Name
 	capacity := req.CapacityRange.RequiredBytes
 	if err := driver.minioClient.CreateBucket(bucketName, capacity); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return &csi.CreateVolumeResponse{}, status.Error(codes.Internal, err.Error())
 	}
 
 	volumeContext := req.GetParameters()
@@ -63,7 +63,7 @@ func (driver *MinIODriver) CreateVolume(ctx context.Context, req *csi.CreateVolu
 func (driver *MinIODriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	bucketName := req.VolumeId
 	if err := driver.minioClient.DeleteBucket(bucketName); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return &csi.DeleteVolumeResponse{}, status.Error(codes.Internal, err.Error())
 	}
 	return &csi.DeleteVolumeResponse{}, nil
 }
@@ -71,14 +71,16 @@ func (driver *MinIODriver) DeleteVolume(ctx context.Context, req *csi.DeleteVolu
 func (driver *MinIODriver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	bucketName := req.VolumeId
 	capacity := req.CapacityRange.RequiredBytes
-	if err := driver.minioClient.SetBucketQuota(bucketName, capacity, madmin.HardQuota); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	if DefaultFeatureGate.Enabled(Quota) {
+		if err := driver.minioClient.SetBucketQuota(bucketName, capacity, madmin.HardQuota); err != nil {
+			return &csi.ControllerExpandVolumeResponse{}, status.Error(codes.Internal, err.Error())
+		}
 	}
 
 	bucketMap, err := driver.minioClient.GetBucketMetadata(bucketName)
 	bucketMap[MetaDataCapacity] = strconv.FormatInt(capacity, 10)
 	if err = driver.minioClient.SetBucketMetadata(bucketName, bucketMap); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return &csi.ControllerExpandVolumeResponse{}, status.Error(codes.Internal, err.Error())
 	}
 
 	return &csi.ControllerExpandVolumeResponse{CapacityBytes: capacity, NodeExpansionRequired: false}, nil
@@ -104,14 +106,14 @@ func (driver *MinIODriver) NodePublishVolume(ctx context.Context, req *csi.NodeP
 
 	notMnt, err := checkMount(targetPath)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return &csi.NodePublishVolumeResponse{}, status.Error(codes.Internal, err.Error())
 	}
 	if !notMnt {
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
 	if err := S3FSMount(driver.Endpoint, bucketName, targetPath, driver.AK, driver.SK); err != nil {
-		return nil, err
+		return &csi.NodePublishVolumeResponse{}, err
 	}
 
 	klog.Infof("s3: bucket %s successfuly mounted to %s", bucketName, targetPath)
@@ -125,10 +127,10 @@ func (driver *MinIODriver) NodeUnpublishVolume(ctx context.Context, req *csi.Nod
 
 	// Check arguments
 	if len(volumeID) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+		return &csi.NodeUnpublishVolumeResponse{}, status.Error(codes.InvalidArgument, "Volume ID missing in request")
 	}
 	if len(targetPath) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Target path missing in request")
+		return &csi.NodeUnpublishVolumeResponse{}, status.Error(codes.InvalidArgument, "Target path missing in request")
 	}
 
 	mountPoint := req.TargetPath
@@ -138,7 +140,7 @@ func (driver *MinIODriver) NodeUnpublishVolume(ctx context.Context, req *csi.Nod
 	}
 
 	if err := S3FSUmount(targetPath); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return &csi.NodeUnpublishVolumeResponse{}, status.Error(codes.Internal, err.Error())
 	}
 	klog.Infof("s3: mountpoint %s has been unmounted.", targetPath)
 
@@ -151,12 +153,12 @@ func (driver *MinIODriver) NodeGetVolumeStats(ctx context.Context, req *csi.Node
 	volumeID := req.GetVolumeId()
 	// volumeID := req.GetVolumePath()
 	if volumeID == "" {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("NodeGetVolumeStats target local path %v is empty", volumeID))
+		return &csi.NodeGetVolumeStatsResponse{}, status.Error(codes.InvalidArgument, fmt.Sprintf("NodeGetVolumeStats target local path %v is empty", volumeID))
 	}
 
 	available, capacity, usage, inodes, inodesFree, inodesUsed, err := driver.minioClient.FsInfo(volumeID)
 	if err != nil {
-		return nil, err
+		return &csi.NodeGetVolumeStatsResponse{}, err
 	}
 	metrics := &k8svol.Metrics{Time: metav1.Now()}
 	metrics.Available = resource.NewQuantity(available, resource.BinarySI)
@@ -168,27 +170,27 @@ func (driver *MinIODriver) NodeGetVolumeStats(ctx context.Context, req *csi.Node
 
 	metricAvailable, ok := (*(metrics.Available)).AsInt64()
 	if !ok {
-		return nil, status.Error(codes.Unknown, "failed to fetch available bytes")
+		return &csi.NodeGetVolumeStatsResponse{}, status.Error(codes.Unknown, "failed to fetch available bytes")
 	}
 	metricCapacity, ok := (*(metrics.Capacity)).AsInt64()
 	if !ok {
-		return nil, status.Error(codes.Unknown, "failed to fetch capacity bytes")
+		return &csi.NodeGetVolumeStatsResponse{}, status.Error(codes.Unknown, "failed to fetch capacity bytes")
 	}
 	metricUsed, ok := (*(metrics.Used)).AsInt64()
 	if !ok {
-		return nil, status.Error(codes.Unknown, "failed to fetch used bytes")
+		return &csi.NodeGetVolumeStatsResponse{}, status.Error(codes.Unknown, "failed to fetch used bytes")
 	}
 	metricInodes, ok := (*(metrics.Inodes)).AsInt64()
 	if !ok {
-		return nil, status.Error(codes.Unknown, "failed to fetch available inodes")
+		return &csi.NodeGetVolumeStatsResponse{}, status.Error(codes.Unknown, "failed to fetch available inodes")
 	}
 	metricInodesFree, ok := (*(metrics.InodesFree)).AsInt64()
 	if !ok {
-		return nil, status.Error(codes.Unknown, "failed to fetch free inodes")
+		return &csi.NodeGetVolumeStatsResponse{}, status.Error(codes.Unknown, "failed to fetch free inodes")
 	}
 	metricInodesUsed, ok := (*(metrics.InodesUsed)).AsInt64()
 	if !ok {
-		return nil, status.Error(codes.Unknown, "failed to fetch used inodes")
+		return &csi.NodeGetVolumeStatsResponse{}, status.Error(codes.Unknown, "failed to fetch used inodes")
 	}
 
 	return &csi.NodeGetVolumeStatsResponse{

@@ -6,14 +6,14 @@ import (
 )
 
 var (
-	TestFeature featuregate.Feature = "TestFeature"
+	Quota featuregate.Feature = "Quota"
 
 	DefaultMutableFeatureGate featuregate.MutableFeatureGate = featuregate.NewFeatureGate()
 
 	DefaultFeatureGate featuregate.FeatureGate = DefaultMutableFeatureGate
 
 	defaultControllerFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
-		TestFeature: {Default: true, PreRelease: featuregate.Alpha},
+		Quota: {Default: true, PreRelease: featuregate.Alpha},
 	}
 )
 

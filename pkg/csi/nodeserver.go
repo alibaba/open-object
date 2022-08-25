@@ -46,30 +46,30 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	// Check arguments
 	if req.GetVolumeCapability() == nil {
-		return nil, status.Error(codes.InvalidArgument, "Volume capability missing in request")
+		return &csi.NodePublishVolumeResponse{}, status.Error(codes.InvalidArgument, "Volume capability missing in request")
 	}
 	if len(volumeID) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+		return &csi.NodePublishVolumeResponse{}, status.Error(codes.InvalidArgument, "Volume ID missing in request")
 	}
 	if len(targetPath) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Target path missing in request")
+		return &csi.NodePublishVolumeResponse{}, status.Error(codes.InvalidArgument, "Target path missing in request")
 	}
 
 	// get driver
 	var err error
 	driverName := getDriverName(req.GetVolumeContext())
 	if driverName == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "%s not found in storageclass parameters", common.ParamDriverName)
+		return &csi.NodePublishVolumeResponse{}, status.Errorf(codes.InvalidArgument, "%s not found in storageclass parameters", common.ParamDriverName)
 	}
 	var driver Driver
 	switch driverName {
 	case s3minio.DriverName:
 		driver, err = getMinIODriver(req.Secrets)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "fail to get minio driver: %s", err.Error())
+			return &csi.NodePublishVolumeResponse{}, status.Errorf(codes.Internal, "fail to get minio driver: %s", err.Error())
 		}
 	default:
-		return nil, status.Errorf(codes.Internal, "unknown driver: %s", driverName)
+		return &csi.NodePublishVolumeResponse{}, status.Errorf(codes.Internal, "unknown driver: %s", driverName)
 	}
 
 	return driver.NodePublishVolume(ctx, req)
@@ -81,14 +81,14 @@ func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 
 	// Check arguments
 	if len(volumeID) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+		return &csi.NodeUnpublishVolumeResponse{}, status.Error(codes.InvalidArgument, "Volume ID missing in request")
 	}
 	if len(targetPath) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Target path missing in request")
+		return &csi.NodeUnpublishVolumeResponse{}, status.Error(codes.InvalidArgument, "Target path missing in request")
 	}
 
 	if err := common.FuseUmount(targetPath); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return &csi.NodeUnpublishVolumeResponse{}, status.Error(codes.Internal, err.Error())
 	}
 	klog.Infof("s3: mountpoint %s has been unmounted.", targetPath)
 

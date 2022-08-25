@@ -17,9 +17,11 @@ limitations under the License.
 package csi
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/alibaba/open-object/pkg/csi"
+	"github.com/alibaba/open-object/pkg/csi/s3minio"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -48,6 +50,10 @@ func init() {
 // Start will start agent
 func Start(opt *csiOption) error {
 	klog.Infof("CSI Driver Name: %s, nodeID: %s, endPoints %s", opt.Driver, opt.NodeID, opt.Endpoint)
+
+	if err := s3minio.DefaultMutableFeatureGate.SetFromMap(opt.FeatureGates); err != nil {
+		return fmt.Errorf("Unable to setup feature-gates: %s", err)
+	}
 
 	cfg, err := clientcmd.BuildConfigFromFlags(opt.Master, opt.KubeConfig)
 	if err != nil {

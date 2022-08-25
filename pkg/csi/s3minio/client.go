@@ -69,12 +69,14 @@ func (driver *MinIOClient) CreateBucket(bucketName string, capacityBytes int64) 
 	}
 
 	// set bucket quota
-	if err = driver.SetBucketQuota(bucketName, capacityBytes, madmin.HardQuota); err != nil {
-		// 创建 bucket 时设置 quota 若失败，回滚
-		if err := driver.DeleteBucket(bucketName); err != nil {
-			return fmt.Errorf("fail to delete bucket %s: %s", bucketName, err.Error())
+	if DefaultFeatureGate.Enabled(Quota) {
+		if err = driver.SetBucketQuota(bucketName, capacityBytes, madmin.HardQuota); err != nil {
+			// 创建 bucket 时设置 quota 若失败，回滚
+			if err := driver.DeleteBucket(bucketName); err != nil {
+				return fmt.Errorf("fail to delete bucket %s: %s", bucketName, err.Error())
+			}
+			return err
 		}
-		return err
 	}
 
 	// set bucket metadata
@@ -88,9 +90,6 @@ func (driver *MinIOClient) CreateBucket(bucketName string, capacityBytes int64) 
 			return fmt.Errorf("fail to delete bucket %s: %s", bucketName, err.Error())
 		}
 		return fmt.Errorf("failed to set bucket %s metadata: %v", bucketName, err)
-	}
-
-	if DefaultFeatureGate.Enabled(TestFeature) {
 	}
 
 	return nil

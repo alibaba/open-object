@@ -56,27 +56,27 @@ func newControllerServer(d *csicommon.CSIDriver) *controllerServer {
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	if len(req.GetName()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Name missing in request")
+		return &csi.CreateVolumeResponse{}, status.Error(codes.InvalidArgument, "Name missing in request")
 	}
 	if req.GetVolumeCapabilities() == nil {
-		return nil, status.Error(codes.InvalidArgument, "Volume Capabilities missing in request")
+		return &csi.CreateVolumeResponse{}, status.Error(codes.InvalidArgument, "Volume Capabilities missing in request")
 	}
 
 	// get driver
 	var err error
 	driverName := getDriverName(req.GetParameters())
 	if driverName == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "%s not found in storageclass parameters", common.ParamDriverName)
+		return &csi.CreateVolumeResponse{}, status.Errorf(codes.InvalidArgument, "%s not found in storageclass parameters", common.ParamDriverName)
 	}
 	var driver Driver
 	switch driverName {
 	case s3minio.DriverName:
 		driver, err = getMinIODriver(req.Secrets)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "fail to get minio driver: %s", err.Error())
+			return &csi.CreateVolumeResponse{}, status.Errorf(codes.Internal, "fail to get minio driver: %s", err.Error())
 		}
 	default:
-		return nil, status.Errorf(codes.Internal, "unknown driver: %s", driverName)
+		return &csi.CreateVolumeResponse{}, status.Errorf(codes.Internal, "unknown driver: %s", driverName)
 	}
 
 	// create volume
@@ -86,28 +86,28 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+		return &csi.DeleteVolumeResponse{}, status.Error(codes.InvalidArgument, "Volume ID missing in request")
 	}
 
 	pv, err := cs.kubeClinet.CoreV1().PersistentVolumes().Get(context.Background(), req.GetVolumeId(), metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pv %s info: %s", req.GetVolumeId(), err.Error())
+		return &csi.DeleteVolumeResponse{}, fmt.Errorf("failed to get pv %s info: %s", req.GetVolumeId(), err.Error())
 	}
 
 	// get driver
 	driverName := getDriverName(pv.Spec.CSI.VolumeAttributes)
 	if driverName == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "%s not found in pv %s attributes", common.ParamDriverName, pv.Name)
+		return &csi.DeleteVolumeResponse{}, status.Errorf(codes.InvalidArgument, "%s not found in pv %s attributes", common.ParamDriverName, pv.Name)
 	}
 	var driver Driver
 	switch driverName {
 	case s3minio.DriverName:
 		driver, err = getMinIODriver(req.Secrets)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "fail to get minio driver: %s", err.Error())
+			return &csi.DeleteVolumeResponse{}, status.Errorf(codes.Internal, "fail to get minio driver: %s", err.Error())
 		}
 	default:
-		return nil, status.Errorf(codes.Internal, "unknown driver: %s", driverName)
+		return &csi.DeleteVolumeResponse{}, status.Errorf(codes.Internal, "unknown driver: %s", driverName)
 	}
 
 	return driver.DeleteVolume(ctx, req)
@@ -116,28 +116,28 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 func (cs *controllerServer) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+		return &csi.ControllerExpandVolumeResponse{}, status.Error(codes.InvalidArgument, "Volume ID missing in request")
 	}
 
 	pv, err := cs.kubeClinet.CoreV1().PersistentVolumes().Get(context.Background(), req.GetVolumeId(), metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pv %s info: %s", req.GetVolumeId(), err.Error())
+		return &csi.ControllerExpandVolumeResponse{}, fmt.Errorf("failed to get pv %s info: %s", req.GetVolumeId(), err.Error())
 	}
 
 	// get driver
 	driverName := getDriverName(pv.Spec.CSI.VolumeAttributes)
 	if driverName == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "%s not found in pv %s attributes", common.ParamDriverName, pv.Name)
+		return &csi.ControllerExpandVolumeResponse{}, status.Errorf(codes.InvalidArgument, "%s not found in pv %s attributes", common.ParamDriverName, pv.Name)
 	}
 	var driver Driver
 	switch driverName {
 	case s3minio.DriverName:
 		driver, err = getMinIODriver(req.Secrets)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "fail to get minio driver: %s", err.Error())
+			return &csi.ControllerExpandVolumeResponse{}, status.Errorf(codes.Internal, "fail to get minio driver: %s", err.Error())
 		}
 	default:
-		return nil, status.Errorf(codes.Internal, "unknown driver: %s", driverName)
+		return &csi.ControllerExpandVolumeResponse{}, status.Errorf(codes.Internal, "unknown driver: %s", driverName)
 	}
 
 	// expand volume
@@ -174,7 +174,6 @@ func GetS3EndPoint(s3host string) (string, error) {
 	scheme := u.Scheme
 	host := u.Hostname()
 	port := u.Port()
-
 	// check if is ip
 	addr := net.ParseIP(host)
 	if addr != nil {
@@ -182,12 +181,12 @@ func GetS3EndPoint(s3host string) (string, error) {
 		endpoint = fmt.Sprintf("%s://%s:%s", scheme, addr.String(), port)
 	} else {
 		// is not ip
-		IPs, err := net.LookupHost(host)
+		IPs, err := net.LookupIP(host)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("fail to lookup %s: %s", host, err.Error())
 		}
 		if len(IPs) == 1 {
-			endpoint = fmt.Sprintf("%s://%s:%s", scheme, IPs[0], port)
+			endpoint = fmt.Sprintf("%s://%s:%s", scheme, IPs[0].String(), port)
 		} else if len(IPs) > 1 {
 			return "", fmt.Errorf("more than one ip found when lookup host %s: %v", host, IPs)
 		} else {

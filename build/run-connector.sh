@@ -1,9 +1,13 @@
 #!/bin/sh
 
 HOST_CMD="nsenter --mount=/proc/1/ns/mnt"
+BINARY_NAME="open-object"
+CONFIG_DIR=/host/etc/$BINARY_NAME
 
-BINARY_NAME=open-object
-CONFIG_DIR=/host/etc/open-object
+if [ ! `$HOST_CMD which s3fs` ]; then
+    echo "s3fs not found, plz install it first..."
+    exit 1
+fi
 
 rm -f $CONFIG_DIR/connector.pid
 rm -f $CONFIG_DIR/connector.sock
