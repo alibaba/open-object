@@ -11,18 +11,18 @@ import (
 	"time"
 
 	"github.com/mitchellh/go-ps"
-	log "github.com/sirupsen/logrus"
+	"k8s.io/klog/v2"
 	"k8s.io/mount-utils"
 )
 
 func FuseMount(path string, command string, args []string) error {
-	log.Infof("Mounting fuse with command: %s and args: %s", command, args)
+	klog.Infof("Mounting fuse with command: %s and args: %s", command, args)
 
 	systemArgs := []string{"systemd-run", "--scope", "--", command}
 	systemArgs = append(systemArgs, args...)
 	cmdStr := strings.Join(systemArgs, " ")
 
-	log.Infof("command string is: %s", cmdStr)
+	klog.Infof("command string is: %s", cmdStr)
 
 	if out, err := ConnectorRunInContainer(cmdStr); err != nil {
 		if err != nil {
@@ -40,14 +40,14 @@ func FuseUmount(path string) error {
 	// as fuse quits immediately, we will try to wait until the process is done
 	process, err := findFuseMountProcess(path)
 	if err != nil {
-		log.Errorf("Error getting PID of fuse mount: %s", err)
+		klog.Errorf("Error getting PID of fuse mount: %s", err)
 		return nil
 	}
 	if process == nil {
-		log.Warningf("Unable to find PID of fuse mount %s, it must have finished already", path)
+		klog.Warningf("Unable to find PID of fuse mount %s, it must have finished already", path)
 		return nil
 	}
-	log.Infof("Found fuse pid %v of mount %s, checking if it still runs", process.Pid, path)
+	klog.Infof("Found fuse pid %v of mount %s, checking if it still runs", process.Pid, path)
 	return waitForProcess(process, 1)
 }
 
@@ -98,11 +98,11 @@ func findFuseMountProcess(path string) (*os.Process, error) {
 	for _, p := range processes {
 		cmdLine, err := getCmdLine(p.Pid())
 		if err != nil {
-			log.Errorf("Unable to get cmdline of PID %v: %s", p.Pid(), err)
+			klog.Errorf("Unable to get cmdline of PID %v: %s", p.Pid(), err)
 			continue
 		}
 		if strings.Contains(cmdLine, path) {
-			log.Infof("Found matching pid %v on path %s", p.Pid(), path)
+			klog.Infof("Found matching pid %v on path %s", p.Pid(), path)
 			return os.FindProcess(p.Pid())
 		}
 	}
@@ -124,21 +124,21 @@ func waitForProcess(p *os.Process, backoff int) error {
 	}
 	cmdLine, err := getCmdLine(p.Pid)
 	if err != nil {
-		log.Warningf("Error checking cmdline of PID %v, assuming it is dead: %s", p.Pid, err)
+		klog.Warningf("Error checking cmdline of PID %v, assuming it is dead: %s", p.Pid, err)
 		return nil
 	}
 	if cmdLine == "" {
 		// ignore defunct processes
 		// TODO: debug why this happens in the first place
 		// seems to only happen on k8s, not on local docker
-		log.Warning("Fuse process seems dead, returning")
+		klog.Warning("Fuse process seems dead, returning")
 		return nil
 	}
 	if err := p.Signal(syscall.Signal(0)); err != nil {
-		log.Warningf("Fuse process does not seem active or we are unprivileged: %s", err)
+		klog.Warningf("Fuse process does not seem active or we are unprivileged: %s", err)
 		return nil
 	}
-	log.Infof("Fuse process with PID %v still active, waiting...", p.Pid)
+	klog.Infof("Fuse process with PID %v still active, waiting...", p.Pid)
 	time.Sleep(time.Duration(backoff*100) * time.Millisecond)
 	return waitForProcess(p, backoff+1)
 }

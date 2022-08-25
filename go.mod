@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/googleapis/gnostic v0.5.4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
@@ -16,11 +15,8 @@ require (
 	github.com/minio/minio v0.0.0-20210222093617-8778828a031a
 	github.com/minio/minio-go/v7 v7.0.10
 	github.com/mitchellh/go-ps v0.0.0-20170309133038-4fdf99ab2936
-	github.com/onsi/ginkgo v1.11.0
-	github.com/onsi/gomega v1.7.0
 	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/sevlyar/go-daemon v0.1.5
-	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/afero v1.5.1 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
@@ -29,6 +25,7 @@ require (
 	k8s.io/apimachinery v0.20.5
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/component-base v0.20.5
+	k8s.io/klog/v2 v2.5.0
 	k8s.io/kubernetes v1.15.0
 	k8s.io/mount-utils v0.0.0
 )

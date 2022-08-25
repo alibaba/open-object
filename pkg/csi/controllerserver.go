@@ -18,11 +18,12 @@ package csi
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 
 	"github.com/alibaba/open-object/pkg/common"
 	"github.com/alibaba/open-object/pkg/csi/s3minio"
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/golang/glog"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -30,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 )
 
 type controllerServer struct {
@@ -40,11 +42,11 @@ type controllerServer struct {
 func newControllerServer(d *csicommon.CSIDriver) *controllerServer {
 	cfg, err := clientcmd.BuildConfigFromFlags("", "")
 	if err != nil {
-		glog.Fatalf("Error building kubeconfig: %s", err.Error())
+		klog.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building kubernetes clientset: %s", err.Error())
+		klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 	return &controllerServer{
 		DefaultControllerServer: csicommon.NewDefaultControllerServer(d),
@@ -147,11 +149,50 @@ func getDriverName(attr map[string]string) string {
 }
 
 func getMinIODriver(secrets map[string]string) (Driver, error) {
+	endpoint, err := GetS3EndPoint(secrets[s3minio.SecretMinIOHost])
+	if err != nil {
+		return nil, err
+	}
+	klog.Infof("endpoint: %s", endpoint)
+
 	cfg := &s3minio.S3Config{
 		AK:       secrets[s3minio.SecretAK],
 		SK:       secrets[s3minio.SecretSK],
 		Region:   secrets[s3minio.SecretRegion],
-		Endpoint: secrets[s3minio.SecretMinIOHost],
+		Endpoint: endpoint,
 	}
 	return s3minio.NewMinIODriver(cfg)
+}
+
+func GetS3EndPoint(s3host string) (string, error) {
+	// endpoint
+	endpoint := ""
+	u, err := url.Parse(s3host)
+	if err != nil {
+		return "", err
+	}
+	scheme := u.Scheme
+	host := u.Hostname()
+	port := u.Port()
+
+	// check if is ip
+	addr := net.ParseIP(host)
+	if addr != nil {
+		// is ip
+		endpoint = fmt.Sprintf("%s://%s:%s", scheme, addr.String(), port)
+	} else {
+		// is not ip
+		IPs, err := net.LookupHost(host)
+		if err != nil {
+			return "", err
+		}
+		if len(IPs) == 1 {
+			endpoint = fmt.Sprintf("%s://%s:%s", scheme, IPs[0], port)
+		} else if len(IPs) > 1 {
+			return "", fmt.Errorf("more than one ip found when lookup host %s: %v", host, IPs)
+		} else {
+			return "", fmt.Errorf("no ip found when lookup host %s", host)
+		}
+	}
+	return endpoint, nil
 }

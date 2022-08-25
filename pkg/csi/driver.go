@@ -20,9 +20,9 @@ import (
 	"github.com/alibaba/open-object/pkg/version"
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 )
 
 type Driver interface {
@@ -51,7 +51,7 @@ type FuseDriver struct {
 func NewFuseDriver(nodeID, endpoint, driverName string, kubeClient *kubernetes.Clientset) (*FuseDriver, error) {
 	driver := csicommon.NewCSIDriver(driverName, version.Version, nodeID)
 	if driver == nil {
-		log.Fatalln("Failed to initialize CSI Driver.")
+		klog.Fatalln("Failed to initialize CSI Driver.")
 	}
 
 	s3Driver := &FuseDriver{

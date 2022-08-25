@@ -22,9 +22,9 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog/v2"
 
 	"github.com/alibaba/open-object/cmd/connector"
 	"github.com/alibaba/open-object/cmd/csi"
@@ -54,30 +54,11 @@ func init() {
 	flag.Parse()
 	MainCmd.SetGlobalNormalizationFunc(wordSepNormalizeFunc)
 	MainCmd.DisableAutoGenTag = true
-	logLevel := os.Getenv(EnvLogLevel)
-	switch logLevel {
-	case LogPanic:
-		log.SetLevel(log.PanicLevel)
-	case LogFatal:
-		log.SetLevel(log.FatalLevel)
-	case LogError:
-		log.SetLevel(log.ErrorLevel)
-	case LogWarn:
-		log.SetLevel(log.WarnLevel)
-	case LogInfo:
-		log.SetLevel(log.InfoLevel)
-	case LogDebug:
-		log.SetLevel(log.DebugLevel)
-	case LogTrace:
-		log.SetLevel(log.TraceLevel)
-	default:
-		log.SetLevel(log.InfoLevel)
-	}
 	addCommands()
 }
 
 func main() {
-	log.Infof("Version: %s, Commit: %s", VERSION, COMMITID)
+	klog.Infof("Version: %s, Commit: %s", VERSION, COMMITID)
 	if err := MainCmd.Execute(); err != nil {
 		fmt.Printf("open-object start error: %+v\n", err)
 		os.Exit(1)

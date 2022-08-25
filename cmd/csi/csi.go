@@ -20,10 +20,10 @@ import (
 	"os"
 
 	"github.com/alibaba/open-object/pkg/csi"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -36,7 +36,7 @@ var Cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := Start(&opt)
 		if err != nil {
-			log.Fatalf("error :%s, quitting now\n", err.Error())
+			klog.Fatalf("error :%s, quitting now\n", err.Error())
 		}
 	},
 }
@@ -47,20 +47,20 @@ func init() {
 
 // Start will start agent
 func Start(opt *csiOption) error {
-	log.Infof("CSI Driver Name: %s, nodeID: %s, endPoints %s", opt.Driver, opt.NodeID, opt.Endpoint)
+	klog.Infof("CSI Driver Name: %s, nodeID: %s, endPoints %s", opt.Driver, opt.NodeID, opt.Endpoint)
 
 	cfg, err := clientcmd.BuildConfigFromFlags(opt.Master, opt.KubeConfig)
 	if err != nil {
-		log.Fatalf("Error building kubeconfig: %s", err.Error())
+		klog.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		log.Fatalf("Error building kubernetes clientset: %s", err.Error())
+		klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
 	driver, err := csi.NewFuseDriver(opt.NodeID, opt.Endpoint, opt.Driver, kubeClient)
 	if err != nil {
-		log.Fatal(err)
+		klog.Fatal(err)
 	}
 	driver.Run()
 	os.Exit(0)

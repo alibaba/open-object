@@ -26,8 +26,8 @@ const (
 
 	SecretMinIOHost string = "host"
 	SecretRegion    string = "region"
-	SecretAK        string = "accesskey"
-	SecretSK        string = "secretkey"
+	SecretAK        string = "rootUser"
+	SecretSK        string = "rootPassword"
 
 	S3FSCmd              = "s3fs"
 	S3FSPassWordFileName = ".passwd-s3fs"

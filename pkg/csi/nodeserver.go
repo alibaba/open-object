@@ -23,10 +23,10 @@ import (
 	"github.com/alibaba/open-object/pkg/csi/s3minio"
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/klog/v2"
 	"k8s.io/mount-utils"
 )
 
@@ -90,7 +90,7 @@ func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	if err := common.FuseUmount(targetPath); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	log.Infof("s3: mountpoint %s has been unmounted.", targetPath)
+	klog.Infof("s3: mountpoint %s has been unmounted.", targetPath)
 
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }

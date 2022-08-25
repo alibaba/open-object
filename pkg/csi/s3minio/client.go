@@ -10,7 +10,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/tags"
 	"github.com/minio/minio/pkg/madmin"
-	log "github.com/sirupsen/logrus"
+	"k8s.io/klog/v2"
 )
 
 type MinIOClient struct {
@@ -99,7 +99,7 @@ func (driver *MinIOClient) CreateBucket(bucketName string, capacityBytes int64) 
 func (driver *MinIOClient) SetBucketQuota(bucketName string, capacityBytes int64, qType madmin.QuotaType) error {
 	ctx := context.Background()
 	// set bucket quota restriction
-	log.Infof("quota type is %s", ParamQuotaType)
+	klog.Infof("quota type is %s", ParamQuotaType)
 	if e := driver.madmin.SetBucketQuota(ctx, bucketName, &madmin.BucketQuota{
 		Quota: uint64(capacityBytes),
 		Type:  qType}); e != nil {
@@ -115,7 +115,7 @@ func (driver *MinIOClient) DeleteBucket(bucketName string) error {
 		return err
 	}
 	if !exists {
-		log.Infof("bucket %s does not exist, ignoring", bucketName)
+		klog.Infof("bucket %s does not exist, ignoring", bucketName)
 		return nil
 	}
 
@@ -151,7 +151,7 @@ func (driver *MinIOClient) EmptyBucket(bucketName string) error {
 	}()
 
 	if listErr != nil {
-		log.Errorf("Error listing objects: %s", listErr.Error())
+		klog.Errorf("Error listing objects: %s", listErr.Error())
 		return listErr
 	}
 
@@ -159,7 +159,7 @@ func (driver *MinIOClient) EmptyBucket(bucketName string) error {
 	default:
 		errorCh := driver.mclient.RemoveObjects(ctx, bucketName, objectsCh, minio.RemoveObjectsOptions{})
 		for e := range errorCh {
-			log.Errorf("Failed to remove object %s, error: %s", e.ObjectName, e.Err)
+			klog.Errorf("Failed to remove object %s, error: %s", e.ObjectName, e.Err)
 		}
 		if len(errorCh) != 0 {
 			return fmt.Errorf("Failed to remove all objects of bucket %s", bucketName)

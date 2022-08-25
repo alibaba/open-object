@@ -9,14 +9,13 @@ import (
 
 	"github.com/alibaba/open-object/pkg/common"
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/golang/glog"
 	"github.com/minio/minio/pkg/madmin"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	k8svol "k8s.io/kubernetes/pkg/volume"
 	"k8s.io/mount-utils"
 )
@@ -115,7 +114,7 @@ func (driver *MinIODriver) NodePublishVolume(ctx context.Context, req *csi.NodeP
 		return nil, err
 	}
 
-	log.Infof("s3: bucket %s successfuly mounted to %s", bucketName, targetPath)
+	klog.Infof("s3: bucket %s successfuly mounted to %s", bucketName, targetPath)
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }
@@ -134,14 +133,14 @@ func (driver *MinIODriver) NodeUnpublishVolume(ctx context.Context, req *csi.Nod
 
 	mountPoint := req.TargetPath
 	if !isS3fsMounted(mountPoint) {
-		glog.Infof("Directory is not mounted: %s", mountPoint)
+		klog.Infof("Directory is not mounted: %s", mountPoint)
 		return &csi.NodeUnpublishVolumeResponse{}, nil
 	}
 
 	if err := S3FSUmount(targetPath); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	log.Infof("s3: mountpoint %s has been unmounted.", targetPath)
+	klog.Infof("s3: mountpoint %s has been unmounted.", targetPath)
 
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
