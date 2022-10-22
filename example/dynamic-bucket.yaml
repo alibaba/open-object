@@ -1,23 +1,54 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Service
 metadata:
-  namespace: default
-  name: dynamic-bucket
+  name: nginx-object
+  labels:
+    app: nginx-object
 spec:
-  replicas: 4
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx-object
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-object
+spec:
   selector:
     matchLabels:
-      app: nginx
+      app: nginx-object
+  podManagementPolicy: Parallel
+  serviceName: "nginx-object"
+  replicas: 1
+  volumeClaimTemplates:
+  - metadata:
+      name: html
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: open-object
+      resources:
+        requests:
+          storage: 5Gi
   template:
     metadata:
       labels:
-        app: nginx
+        app: nginx-object
     spec:
       tolerations:
-      - operator: Exists
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
       containers:
       - name: nginx
         image: nginx
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: "/data"
+          name: html
         command:
         - sh
         - "-c"

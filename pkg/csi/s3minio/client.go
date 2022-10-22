@@ -64,7 +64,7 @@ func (driver *MinIOClient) CreateBucket(bucketName string, capacityBytes int64) 
 	}
 	if !exists {
 		if err = driver.mclient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{Region: driver.region}); err != nil {
-			return fmt.Errorf("Failed to create bucket %s: %v", bucketName, err)
+			return fmt.Errorf("failed to create bucket %s: %s", bucketName, err.Error())
 		}
 	}
 
@@ -82,7 +82,7 @@ func (driver *MinIOClient) CreateBucket(bucketName string, capacityBytes int64) 
 	// set bucket metadata
 	bucketMap := map[string]string{
 		MetaDataCapacity:      strconv.FormatInt(capacityBytes, 10),
-		MetaDataPrivisionType: string(ProvisionFromDynamicCreateBucket),
+		MetaDataPrivisionType: string(ProvisionTypeBucketOrCreate),
 	}
 	if err = driver.SetBucketMetadata(bucketName, bucketMap); err != nil {
 		// 创建 bucket 时打 tag 若失败，回滚
