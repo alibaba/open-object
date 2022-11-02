@@ -1,10 +1,11 @@
-FROM golang:1.15.6 AS builder
+FROM golang:1.15.6@sha256:a3c6ad248e08e28868dac893ed96fec00e5b110d005238fdae177772486947b0 AS builder
 
 WORKDIR /go/src/github.com/alibaba/open-object
 COPY . .
 RUN make build && chmod +x bin/open-object
 
-FROM alpine:3.9
+
+FROM alpine:3.9@sha256:f920ccc826134587fffcf1ddc6b2a554947e0f1a5ae5264bbf3435da5b2e8e61
 
 RUN apk update && apk upgrade && apk add util-linux coreutils file
 

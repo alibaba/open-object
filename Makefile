@@ -14,25 +14,32 @@ MAIN_FILE=./cmd/main.go
 
 IMAGE_NAME=thebeatles1994/${NAME}
 VERSION=v0.1.0-dev
-# IMAGE_TAG=${IMAGE_NAME}:${VERSION}
-IMAGE_TAG=ack-agility-registry.cn-shanghai.cr.aliyuncs.com/ecp_builder/open-object:v0.1.0-dev
+IMAGE_NAME_FOR_DOCKERHUB=thebeatles1994/${NAME}
 GIT_COMMIT=$(shell git rev-parse HEAD)
 LD_FLAGS=-ldflags "-X '${GO_PACKAGE}/pkg/version.GitCommit=$(GIT_COMMIT)' -X '${GO_PACKAGE}/pkg/version.Version=$(VERSION)' -X 'main.VERSION=$(VERSION)' -X 'main.COMMITID=$(GIT_COMMIT)'"
 
-.PHONY: test build container sync clean
+.PHONY: build image clean
 
 .PHONY: build
 build:
-	GOARCH=$(GO_ARCH) GOOS=$(GO_OS) CGO_ENABLED=0 $(GO_BUILD) $(LD_FLAGS) -v -o $(OUTPUT_DIR)/$(NAME) $(MAIN_FILE)
-	chmod +x $(OUTPUT_DIR)/$(NAME)
+	CGO_ENABLED=0 $(GO_BUILD) $(LD_FLAGS) -v -o $(OUTPUT_DIR)/$(NAME) $(MAIN_FILE)
 
-local:
-	GO111MODULE=off CGO_ENABLED=0 go build $(LD_FLAGS) -v -o $(BIN_DRIVER_NAME) . .
-image: build
+.PHONY: develop
+develop:
+	GOARCH=amd64 GOOS=linux CGO_ENABLED=0 $(GO_BUILD) $(LD_FLAGS) -v -o $(OUTPUT_DIR)/$(NAME) $(MAIN_FILE)
 	chmod +x $(OUTPUT_DIR)/$(NAME)
-	chmod +x build/run-connector.sh
-	docker build -t $(IMAGE_TAG) -f build/Dockerfile .
-	docker push $(IMAGE_TAG)
+	docker build . -t ${IMAGE_NAME_FOR_DOCKERHUB}:${VERSION} -f ./build/Dockerfile.dev
+
+# build image
+.PHONY: image
+image:
+	docker build . -t ${IMAGE_NAME_FOR_DOCKERHUB}:${VERSION} -f ./build/Dockerfile
+
+# build image for arm64
+.PHONY: image-arm64
+image-arm64:
+	docker build . -t ${IMAGE_NAME_FOR_DOCKERHUB}:${VERSION}-arm64 -f ./build/Dockerfile.arm64
+
 clean:
 	go clean -r -x
-	-rm -rf _output
+	-rm -rf bin
