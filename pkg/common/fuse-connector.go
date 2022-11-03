@@ -72,7 +72,9 @@ func runFuseProxy() {
 	} else {
 		pathDir := filepath.Dir(ConnectorSocketPath)
 		if !IsDirExisting(pathDir) {
-			os.MkdirAll(pathDir, os.ModePerm)
+			if err := os.MkdirAll(pathDir, os.ModePerm); err != nil {
+				klog.Fatalf("fail to mkdir: %s", err.Error())
+			}
 		}
 	}
 
