@@ -13,7 +13,7 @@ OUTPUT_DIR=./bin
 MAIN_FILE=./cmd/main.go
 
 IMAGE_NAME=thebeatles1994/${NAME}
-VERSION=v0.1.0-dev
+VERSION=v0.1.0
 IMAGE_NAME_FOR_DOCKERHUB=thebeatles1994/${NAME}
 GIT_COMMIT=$(shell git rev-parse HEAD)
 LD_FLAGS=-ldflags "-X '${GO_PACKAGE}/pkg/version.GitCommit=$(GIT_COMMIT)' -X '${GO_PACKAGE}/pkg/version.Version=$(VERSION)' -X 'main.VERSION=$(VERSION)' -X 'main.COMMITID=$(GIT_COMMIT)'"
