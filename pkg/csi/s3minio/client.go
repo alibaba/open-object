@@ -150,19 +150,16 @@ func (driver *MinIOClient) EmptyBucket(bucketName string) error {
 	}()
 
 	if listErr != nil {
-		klog.Errorf("Error listing objects: %s", listErr.Error())
+		klog.Errorf("fail to list objects: %s", listErr.Error())
 		return listErr
 	}
 
-	select {
-	default:
-		errorCh := driver.mclient.RemoveObjects(ctx, bucketName, objectsCh, minio.RemoveObjectsOptions{})
-		for e := range errorCh {
-			klog.Errorf("Failed to remove object %s, error: %s", e.ObjectName, e.Err)
-		}
-		if len(errorCh) != 0 {
-			return fmt.Errorf("Failed to remove all objects of bucket %s", bucketName)
-		}
+	errorCh := driver.mclient.RemoveObjects(ctx, bucketName, objectsCh, minio.RemoveObjectsOptions{})
+	for e := range errorCh {
+		klog.Errorf("failed to remove object %s, error: %s", e.ObjectName, e.Err)
+	}
+	if len(errorCh) != 0 {
+		return fmt.Errorf("failed to remove all objects of bucket %s", bucketName)
 	}
 
 	return nil

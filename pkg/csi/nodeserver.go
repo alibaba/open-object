@@ -17,8 +17,6 @@ limitations under the License.
 package csi
 
 import (
-	"os"
-
 	"github.com/alibaba/open-object/pkg/common"
 	"github.com/alibaba/open-object/pkg/csi/s3minio"
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -27,7 +25,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog/v2"
-	"k8s.io/mount-utils"
 )
 
 type nodeServer struct {
@@ -138,19 +135,4 @@ func (ns *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 func (ns *nodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
 	return nil, nil
 
-}
-
-func checkMount(targetPath string) (bool, error) {
-	notMnt, err := mount.New("").IsLikelyNotMountPoint(targetPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if err = os.MkdirAll(targetPath, 0750); err != nil {
-				return false, err
-			}
-			notMnt = true
-		} else {
-			return false, err
-		}
-	}
-	return notMnt, nil
 }

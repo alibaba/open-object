@@ -28,7 +28,11 @@ func RunConnector() {
 	if d != nil {
 		return
 	}
-	defer cntxt.Release()
+	defer func() {
+		if err := cntxt.Release(); err != nil {
+			klog.Errorf("fail to release daemon ctx: %s", err.Error())
+		}
+	}()
 	klog.Info("Fuse Connector Daemon Is Starting...")
 
 	runFuseProxy()
@@ -44,12 +48,14 @@ func ConnectorRunInContainer(cmd string) (string, error) {
 
 	_, err = c.Write([]byte(cmd))
 	if err != nil {
-		klog.Infof("Fuse connector write error: %s", err.Error())
 		return err.Error(), err
 	}
 
 	buf := make([]byte, 2048)
 	n, err := c.Read(buf[:])
+	if err != nil {
+		return err.Error(), err
+	}
 	response := string(buf[0:n])
 	if strings.HasPrefix(response, "Success") {
 		respstr := response[8:]
@@ -60,7 +66,9 @@ func ConnectorRunInContainer(cmd string) (string, error) {
 
 func runFuseProxy() {
 	if IsDirExisting(ConnectorSocketPath) {
-		os.Remove(ConnectorSocketPath)
+		if err := os.Remove(ConnectorSocketPath); err != nil {
+			klog.Fatalf("fail to remove connector socket: %s", err.Error())
+		}
 	} else {
 		pathDir := filepath.Dir(ConnectorSocketPath)
 		if !IsDirExisting(pathDir) {
@@ -100,11 +108,11 @@ func echoServer(c net.Conn) {
 	// run command
 	if out, err := RunCommand(cmd); err != nil {
 		reply := "Fail: " + cmd + ", error: " + err.Error()
-		_, err = c.Write([]byte(reply))
+		_, _ = c.Write([]byte(reply))
 		klog.Infof("Server Fail to run cmd:", reply)
 	} else {
 		out = "Success:" + out
-		_, err = c.Write([]byte(out))
+		_, _ = c.Write([]byte(out))
 		klog.Infof("Success: %s", out)
 	}
 }

@@ -16,7 +16,7 @@ func S3FSMount(url, bucket, mountpoint, AK, SK string) error {
 	// s3fs acs-kok:/ /mnt/s3fs/ -ourl=http://10.254.230.59:9000 -opasswd_file=/root/.passwd-s3fs -ouse_path_request_style -oallow_other -omp_umask=000
 	args := []string{
 		fmt.Sprintf("%s:/", bucket),
-		fmt.Sprintf("%s", mountpoint),
+		mountpoint,
 		fmt.Sprintf("-ourl=%s", url),
 		fmt.Sprintf("-opasswd_file=%s", filepath.Join(common.ConfigDir, S3FSPassWordFileName)),
 		"-ouse_path_request_style",

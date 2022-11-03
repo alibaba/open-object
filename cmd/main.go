@@ -31,17 +31,6 @@ import (
 	"github.com/alibaba/open-object/cmd/version"
 )
 
-const (
-	EnvLogLevel = "LogLevel"
-	LogPanic    = "Panic"
-	LogFatal    = "Fatal"
-	LogError    = "Error"
-	LogWarn     = "Warn"
-	LogInfo     = "Info"
-	LogDebug    = "Debug"
-	LogTrace    = "Trace"
-)
-
 var (
 	MainCmd = &cobra.Command{
 		Use: "open-object",
