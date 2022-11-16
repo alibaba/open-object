@@ -38,8 +38,15 @@ make image
 yum update
 yum install -y s3fs
 
-# 通过 helm 安装 open-object
 cd $GOPATH/src/github.com/alibaba/open-object
+# 编辑 values.yaml 中的 .minio 字段
+# minio:
+#   host: "http://10.96.2.217:9000"
+#   accesskey: "minio"
+#   secretkey: "miniostorage"
+#   region: "china"
+vi values.yaml
+# 通过 helm 安装 open-object
 helm install open-object helm/
 ```
 
