@@ -5,7 +5,7 @@ driver: object.csi.aliyun.com
 images:
   object:
     image: thebeatles1994/open-object
-    tag: v0.1.0
+    tag: v0.1.1
   provisioner:
     image: ack-agility-registry.cn-shanghai.cr.aliyuncs.com/ecp_builder/csi-provisioner
     tag: v2.2.2
