@@ -156,7 +156,7 @@ func (driver *MinIODriver) NodePublishVolume(ctx context.Context, req *csi.NodeP
 		return &csi.NodePublishVolumeResponse{}, err
 	}
 
-	klog.Infof("s3: bucket %s successfuly mounted to %s", bucketName, targetPath)
+	klog.Infof("s3: bucket %s successfully mounted to %s", bucketName, targetPath)
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }
