@@ -26,9 +26,11 @@ func NewMinIOClient(cfg *S3Config) (*MinIOClient, error) {
 		return nil, err
 	}
 	useSSL := u.Scheme == "https"
-	endpoint := u.Hostname()
-	if u.Port() != "" {
-		endpoint = u.Hostname() + ":" + u.Port()
+	var endpoint string
+	if useSSL {
+		endpoint = cfg.Endpoint[len("https://"):]
+	} else {
+		endpoint = cfg.Endpoint[len("http://"):]
 	}
 
 	// minio admin

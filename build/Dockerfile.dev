@@ -2,4 +2,7 @@ FROM alpine:3.9
 LABEL maintainers="Alibaba Cloud Authors"
 RUN apk update && apk upgrade && apk add util-linux coreutils file
 COPY bin/open-object /bin/open-object
+COPY ./build/run-connector.sh /run-connector.sh
+COPY ./build/fuse-connector.service /fuse-connector.service
+COPY ./build/fuse-connector.conf /fuse-connector.conf 
 ENTRYPOINT ["/bin/open-object"]

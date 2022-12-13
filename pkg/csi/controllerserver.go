@@ -176,22 +176,27 @@ func GetS3EndPoint(s3host string) (string, error) {
 	port := u.Port()
 	// check if is ip
 	addr := net.ParseIP(host)
-	if addr != nil {
-		// is ip
-		endpoint = fmt.Sprintf("%s://%s:%s", scheme, addr.String(), port)
-	} else {
+	if addr == nil {
 		// is not ip
 		IPs, err := net.LookupIP(host)
 		if err != nil {
 			return "", fmt.Errorf("fail to lookup %s: %s", host, err.Error())
 		}
-		if len(IPs) == 1 {
-			endpoint = fmt.Sprintf("%s://%s:%s", scheme, IPs[0].String(), port)
-		} else if len(IPs) > 1 {
-			return "", fmt.Errorf("more than one ip found when lookup host %s: %v", host, IPs)
+		if len(IPs) != 0 {
+			// more than one ip found when lookup host, we use the first ip
+			addr = IPs[0]
 		} else {
 			return "", fmt.Errorf("no ip found when lookup host %s", host)
 		}
 	}
+
+	if addr.To4() == nil {
+		// ipv6
+		endpoint = fmt.Sprintf("%s://[%s]:%s", scheme, addr.String(), port)
+	} else {
+		// ipv4
+		endpoint = fmt.Sprintf("%s://%s:%s", scheme, addr.String(), port)
+	}
+
 	return endpoint, nil
 }
